@@ -80,20 +80,24 @@ jobs:
       - name: Setup Isolated Font Environment (With Custom fonts.conf)
         if: runner.os == 'Linux'
         run: |
-          # 1. Define paths
-          ISOLATED_DIR="/tmp/weasy_fonts_final"
+          # 1. Create the font directory in the current user's home (guaranteed writable)
+          # The runner user is usually 'runner' with home at /home/runner
+          ISOLATED_DIR="$HOME/weasy_fonts_final"
           rm -rf "$ISOLATED_DIR"
           mkdir -p "$ISOLATED_DIR"
-          chmod 777 "$ISOLATED_DIR"
-
-          # 2. Copy fonts
+          # No sudo needed here, we are already the user
+          
+          # 2. Copy fonts (we need sudo to read /usr/share/fonts, but the destination is ours)
           sudo cp -r /usr/share/fonts/* "$ISOLATED_DIR/"
-          sudo chmod -R 777 "$ISOLATED_DIR"
-
-          # 3. Create cache directory
+          
+          # 3. Ensure ownership is correct (should be automatic, but force it)
+          chown -R $$USER:$$USER "$ISOLATED_DIR"
+          chmod -R 755 "$ISOLATED_DIR" # 755 is enough if we own it
+          
+          # 4. Create cache directory
           CACHE_DIR="$ISOLATED_DIR/.cache"
           mkdir -p "$CACHE_DIR"
-          chmod 777 "$CACHE_DIR"
+          chmod 755 "$CACHE_DIR"
 
           # 4. Create CUSTOM fonts.conf that ONLY points to our directory
           CONF_DIR="$ISOLATED_DIR/conf.d"
@@ -102,8 +106,8 @@ jobs:
           <?xml version="1.0"?>
           <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
           <fontconfig>
-            <dir>/tmp/weasy_fonts_final</dir>
-            <cachedir>/tmp/weasy_fonts_final/.cache</cachedir>
+            <dir>/home/runner/weasy_fonts_final</dir>
+            <cachedir>/home/runner/weasy_fonts_final/.cache</cachedir>
           </fontconfig>
           EOF
 
@@ -133,8 +137,3 @@ jobs:
       - name: Test
         run: dotnet test --verbosity normal
         working-directory: ./src/Weasyprint.Wrapped.Tests
-        env:
-          FONTCONFIG_FILE: /tmp/weasy_fonts_final/fonts.conf
-          FONTCONFIG_PATH: /tmp/weasy_fonts_final
-          XDG_DATA_HOME: /tmp/weasy_fonts_final
-          XDG_CACHE_HOME: /tmp/weasy_fonts_final/.cache
