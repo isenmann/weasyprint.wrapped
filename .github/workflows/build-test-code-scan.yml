@@ -82,7 +82,7 @@ jobs:
         run: |
           # 1. Create the font directory in the current user's home (guaranteed writable)
           # The runner user is usually 'runner' with home at /home/runner
-          ISOLATED_DIR="$HOME/weasy_fonts_final"
+          ISOLATED_DIR="/home/runner/weasy_fonts_final"
           rm -rf "$ISOLATED_DIR"
           mkdir -p "$ISOLATED_DIR"
           # No sudo needed here, we are already the user
@@ -91,12 +91,13 @@ jobs:
           sudo cp -r /usr/share/fonts/* "$ISOLATED_DIR/"
           
           # 3. Ensure ownership is correct (should be automatic, but force it)
-          chown -R $$USER:$$USER "$ISOLATED_DIR"
-          chmod -R 755 "$ISOLATED_DIR" # 755 is enough if we own it
+          sudo chown -R runner:runner "$ISOLATED_DIR"
+          sudo chmod -R 755 "$ISOLATED_DIR" # 755 is enough if we own it
           
           # 4. Create cache directory
           CACHE_DIR="$ISOLATED_DIR/.cache"
           mkdir -p "$CACHE_DIR"
+          sudo chown -R runner:runner "$CACHE_DIR"
           chmod 755 "$CACHE_DIR"
 
           # 4. Create CUSTOM fonts.conf that ONLY points to our directory
